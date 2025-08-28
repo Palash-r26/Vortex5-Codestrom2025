@@ -8,10 +8,22 @@ import {
   MessageSquare, 
   BarChart3, 
   Shield,
-  Globe
+  Globe,
+  LogOut,
+  User
 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 
 const Navigation = () => {
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/');
+  };
+  
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
@@ -56,9 +68,22 @@ const Navigation = () => {
               <Globe className="w-4 h-4 mr-2" />
               EN
             </Button>
-            <Button variant="medical" size="sm">
-              Emergency
-            </Button>
+            {user ? (
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm">
+                  <User className="w-4 h-4 mr-2" />
+                  {user.email?.split('@')[0]}
+                </Button>
+                <Button size="sm" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <Button size="sm" onClick={() => navigate('/auth')}>
+                Sign In
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -92,9 +117,16 @@ const Navigation = () => {
                   <Globe className="w-4 h-4 mr-2" />
                   Language
                 </Button>
-                <Button variant="medical" size="sm" className="flex-1">
-                  Emergency
-                </Button>
+                {user ? (
+                  <Button size="sm" className="flex-1" onClick={handleSignOut}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                ) : (
+                  <Button size="sm" className="flex-1" onClick={() => navigate('/auth')}>
+                    Sign In
+                  </Button>
+                )}
               </div>
             </div>
           </div>
