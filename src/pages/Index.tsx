@@ -3,6 +3,7 @@ import HeroSection from "@/components/HeroSection";
 import SymptomChecker from "@/components/SymptomChecker";
 import ChatInterface from "@/components/ChatInterface";
 import Dashboard from "@/components/Dashboard";
+import AboutSection from "@/components/AboutSection";
 import Footer from "@/components/Footer";
 
 const Index = () => {
@@ -20,6 +21,7 @@ const Index = () => {
         <div id="dashboard">
           <Dashboard />
         </div>
+        <AboutSection />
       </main>
       <Footer />
     </div>

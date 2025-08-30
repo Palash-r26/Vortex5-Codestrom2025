@@ -33,10 +33,20 @@ const HeroSection = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button variant="hero" size="lg" className="text-xl px-8 py-4">
+            <Button 
+              variant="hero" 
+              size="lg" 
+              className="text-xl px-8 py-4"
+              onClick={() => document.getElementById('symptoms')?.scrollIntoView({ behavior: 'smooth' })}
+            >
               Start Diagnosis
             </Button>
-            <Button variant="outline" size="lg" className="text-lg bg-white/10 border-white/30 text-white hover:bg-white/20">
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="text-lg bg-white/10 border-white/30 text-white hover:bg-white/20"
+              onClick={() => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' })}
+            >
               Learn More
             </Button>
           </div>
