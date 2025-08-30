@@ -27,6 +27,7 @@ const SymptomChecker = () => {
     allergies: "",
     medications: ""
   });
+  const [description, setDescription] = useState("");
 
   const addSymptom = () => {
     if (currentSymptom.trim() && !symptoms.includes(currentSymptom.trim())) {
@@ -37,6 +38,23 @@ const SymptomChecker = () => {
 
   const removeSymptom = (symptom: string) => {
     setSymptoms(symptoms.filter(s => s !== symptom));
+  };
+
+  const handleAnalyzeSymptoms = () => {
+    const analysisData = {
+      symptoms,
+      description,
+      patientInfo: patientData,
+      timestamp: new Date().toISOString()
+    };
+    
+    console.log("Analyzing symptoms with data:", analysisData);
+    
+    // Store data in localStorage for now (later can be sent to backend/AI service)
+    localStorage.setItem('symptomAnalysisData', JSON.stringify(analysisData));
+    
+    // TODO: Implement actual AI analysis or navigation to results page
+    alert(`Analysis started with ${symptoms.length} symptoms and patient data. Check console for details.`);
   };
 
   const commonSymptoms = [
@@ -134,6 +152,8 @@ const SymptomChecker = () => {
                   id="description"
                   placeholder="When did symptoms start? How severe are they? Any triggers you've noticed?"
                   rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                 />
               </div>
             </CardContent>
@@ -233,6 +253,7 @@ const SymptomChecker = () => {
             size="lg" 
             className="text-lg px-12 py-4"
             disabled={symptoms.length === 0}
+            onClick={handleAnalyzeSymptoms}
           >
             <MessageSquare className="w-5 h-5 mr-2" />
             Analyze Symptoms
