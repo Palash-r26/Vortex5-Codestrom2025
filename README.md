@@ -142,14 +142,15 @@ It is **not a substitute for professional medical advice**. Always consult a qua
 ---
 
 ## 👥 Team Vortex 5
+Member - 1 Palash Rai 
 
-* **AI/ML Engineer** – \[Your Name]
-* **Backend Developer** – \[Name]
-* **Frontend Developer** – \[Name]
-* **Data Engineer** – \[Name]
-* **Medical Advisor** – \[Name]
+Member - 2 Prarthana Sharma 
 
----
+Member - 3 Sarvesh Baghel 
+
+Member - 4 Yashasav Khandelwal  
+
+Member - 5 Adarsh Goyal  
 
 ## 🏆 Hackathon Deliverables
 
