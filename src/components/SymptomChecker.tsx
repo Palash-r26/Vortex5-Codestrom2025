@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,6 +21,7 @@ import {
 } from "lucide-react";
 
 const SymptomChecker = () => {
+  const { user } = useAuth();
   const [symptoms, setSymptoms] = useState<string[]>([]);
   const [currentSymptom, setCurrentSymptom] = useState("");
   const [patientData, setPatientData] = useState({
@@ -28,6 +32,7 @@ const SymptomChecker = () => {
     medications: ""
   });
   const [description, setDescription] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const addSymptom = () => {
     if (currentSymptom.trim() && !symptoms.includes(currentSymptom.trim())) {
@@ -40,21 +45,59 @@ const SymptomChecker = () => {
     setSymptoms(symptoms.filter(s => s !== symptom));
   };
 
-  const handleAnalyzeSymptoms = () => {
-    const analysisData = {
-      symptoms,
-      description,
-      patientInfo: patientData,
-      timestamp: new Date().toISOString()
-    };
+  const handleAnalyzeSymptoms = async () => {
+    if (!user) {
+      toast.error("Please log in to analyze your symptoms");
+      return;
+    }
+
+    setIsSubmitting(true);
     
-    console.log("Analyzing symptoms with data:", analysisData);
-    
-    // Store data in localStorage for now (later can be sent to backend/AI service)
-    localStorage.setItem('symptomAnalysisData', JSON.stringify(analysisData));
-    
-    // TODO: Implement actual AI analysis or navigation to results page
-    alert(`Analysis started with ${symptoms.length} symptoms and patient data. Check console for details.`);
+    try {
+      const { data, error } = await supabase
+        .from('symptom_analyses')
+        .insert({
+          user_id: user.id,
+          symptoms,
+          description,
+          patient_age: patientData.age,
+          patient_weight: patientData.weight,
+          patient_gender: patientData.gender,
+          patient_allergies: patientData.allergies,
+          patient_medications: patientData.medications,
+          analysis_result: { status: 'pending' }, // Placeholder for AI analysis
+          confidence_score: null
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error saving symptom analysis:", error);
+        toast.error("Failed to save your symptom analysis");
+        return;
+      }
+
+      console.log("Symptom analysis saved:", data);
+      toast.success("Symptom analysis saved successfully!");
+      
+      // Clear form after successful submission
+      setSymptoms([]);
+      setCurrentSymptom("");
+      setDescription("");
+      setPatientData({
+        age: "",
+        weight: "",
+        gender: "",
+        allergies: "",
+        medications: ""
+      });
+      
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const commonSymptoms = [
@@ -252,12 +295,17 @@ const SymptomChecker = () => {
             variant="medical" 
             size="lg" 
             className="text-lg px-12 py-4"
-            disabled={symptoms.length === 0}
+            disabled={symptoms.length === 0 || isSubmitting}
             onClick={handleAnalyzeSymptoms}
           >
             <MessageSquare className="w-5 h-5 mr-2" />
-            Analyze Symptoms
+            {isSubmitting ? "Saving..." : !user ? "Login Required" : "Analyze Symptoms"}
           </Button>
+          {!user && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Please <a href="/auth" className="text-primary hover:underline">log in</a> to analyze your symptoms
+            </p>
+          )}
         </div>
       </div>
     </section>

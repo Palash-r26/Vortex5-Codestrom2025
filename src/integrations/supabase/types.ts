@@ -38,6 +38,54 @@ export type Database = {
         }
         Relationships: []
       }
+      symptom_analyses: {
+        Row: {
+          analysis_result: Json | null
+          confidence_score: number | null
+          created_at: string
+          description: string | null
+          id: string
+          patient_age: string | null
+          patient_allergies: string | null
+          patient_gender: string | null
+          patient_medications: string | null
+          patient_weight: string | null
+          symptoms: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_result?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          patient_age?: string | null
+          patient_allergies?: string | null
+          patient_gender?: string | null
+          patient_medications?: string | null
+          patient_weight?: string | null
+          symptoms: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_result?: Json | null
+          confidence_score?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          patient_age?: string | null
+          patient_allergies?: string | null
+          patient_gender?: string | null
+          patient_medications?: string | null
+          patient_weight?: string | null
+          symptoms?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
