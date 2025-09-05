@@ -17,7 +17,8 @@ import {
   Calendar, 
   Weight, 
   AlertTriangle,
-  MessageSquare 
+  MessageSquare,
+  Brain
 } from "lucide-react";
 
 const SymptomChecker = () => {
@@ -33,6 +34,7 @@ const SymptomChecker = () => {
   });
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
 
   const addSymptom = () => {
     if (currentSymptom.trim() && !symptoms.includes(currentSymptom.trim())) {
@@ -54,6 +56,7 @@ const SymptomChecker = () => {
     setIsSubmitting(true);
     
     try {
+      // Save the symptom analysis to database first
       const { data, error } = await supabase
         .from('symptom_analyses')
         .insert({
@@ -65,7 +68,7 @@ const SymptomChecker = () => {
           patient_gender: patientData.gender,
           patient_allergies: patientData.allergies,
           patient_medications: patientData.medications,
-          analysis_result: { status: 'pending' }, // Placeholder for AI analysis
+          analysis_result: { status: 'pending' },
           confidence_score: null
         })
         .select()
@@ -77,8 +80,23 @@ const SymptomChecker = () => {
         return;
       }
 
-      console.log("Symptom analysis saved:", data);
-      toast.success("Symptom analysis saved successfully!");
+      console.log("Symptom analysis saved, starting AI analysis...");
+      toast.loading("Analyzing your symptoms with AI...", { id: 'analysis' });
+
+      // Call the AI analysis function
+      const { data: aiResult, error: aiError } = await supabase.functions.invoke('analyze-symptoms', {
+        body: { analysisId: data.id }
+      });
+
+      if (aiError) {
+        console.error("AI analysis error:", aiError);
+        toast.error("Failed to analyze symptoms", { id: 'analysis' });
+        return;
+      }
+
+      console.log("AI analysis completed:", aiResult);
+      setAnalysisResult(aiResult.analysis);
+      toast.success("Analysis complete! Check your results below.", { id: 'analysis' });
       
       // Clear form after successful submission
       setSymptoms([]);
@@ -94,7 +112,7 @@ const SymptomChecker = () => {
       
     } catch (error) {
       console.error("Unexpected error:", error);
-      toast.error("An unexpected error occurred");
+      toast.error("An unexpected error occurred", { id: 'analysis' });
     } finally {
       setIsSubmitting(false);
     }
@@ -299,7 +317,7 @@ const SymptomChecker = () => {
             onClick={handleAnalyzeSymptoms}
           >
             <MessageSquare className="w-5 h-5 mr-2" />
-            {isSubmitting ? "Saving..." : !user ? "Login Required" : "Analyze Symptoms"}
+            {isSubmitting ? "Analyzing..." : !user ? "Login Required" : "Analyze Symptoms"}
           </Button>
           {!user && (
             <p className="text-sm text-muted-foreground mt-2">
@@ -307,6 +325,97 @@ const SymptomChecker = () => {
             </p>
           )}
         </div>
+
+        {/* Analysis Results */}
+        {analysisResult && (
+          <div className="max-w-4xl mx-auto mt-12">
+            <Card className="shadow-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-primary" />
+                  AI Analysis Results
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Conditions */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-lg">Possible Conditions</h3>
+                  {analysisResult.conditions?.map((condition: any, index: number) => (
+                    <div key={index} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h4 className="font-semibold">{condition.name}</h4>
+                          <p className="text-muted-foreground text-sm">{condition.description}</p>
+                        </div>
+                        <Badge 
+                          variant={condition.severity === 'mild' ? 'secondary' : condition.severity === 'moderate' ? 'outline' : 'destructive'}
+                        >
+                          {condition.severity}
+                        </Badge>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-sm">
+                          <span>Confidence</span>
+                          <span className="font-medium">{condition.confidence}%</span>
+                        </div>
+                        <div className="w-full bg-secondary rounded-full h-2">
+                          <div 
+                            className="bg-primary h-2 rounded-full" 
+                            style={{ width: `${condition.confidence}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Medications */}
+                {analysisResult.medications && analysisResult.medications.length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Recommended Medications</h3>
+                    {analysisResult.medications.map((med: any, index: number) => (
+                      <div key={index} className="border rounded-lg p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <h4 className="font-semibold">{med.name}</h4>
+                            <p className="text-muted-foreground text-sm">{med.purpose}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium">Dosage:</span>
+                            <p className="text-muted-foreground">{med.dosage}</p>
+                          </div>
+                          <div>
+                            <span className="font-medium">Duration:</span>
+                            <p className="text-muted-foreground">{med.duration}</p>
+                          </div>
+                        </div>
+                        {med.precautions && (
+                          <div className="mt-3 p-3 bg-warning/10 rounded border border-warning/20">
+                            <p className="text-sm font-medium text-warning">Precautions:</p>
+                            <p className="text-sm text-muted-foreground">{med.precautions}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Disclaimer */}
+                <div className="flex items-start gap-3 p-4 bg-warning/10 rounded-lg border border-warning/20">
+                  <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-medium text-warning mb-1">Medical Disclaimer</p>
+                    <p className="text-muted-foreground">
+                      {analysisResult.disclaimer}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </section>
   );

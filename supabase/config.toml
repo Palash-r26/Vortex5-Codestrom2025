@@ -1,1 +1,10 @@
 project_id = "ojcqsexcmzkisexruhde"
+
+[functions.analyze-symptoms]
+verify_jwt = false
+
+[functions.medical-chat]
+verify_jwt = false
+
+[functions.generate-report]
+verify_jwt = false

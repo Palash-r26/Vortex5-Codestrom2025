@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { 
   Bot, 
   User, 
@@ -13,7 +15,8 @@ import {
   Languages, 
   Clock,
   Brain,
-  Shield
+  Shield,
+  AlertCircle
 } from "lucide-react";
 
 interface Message {
@@ -23,6 +26,8 @@ interface Message {
   timestamp: Date;
   confidence?: number;
   reasoning?: string;
+  recommend_medical_care?: boolean;
+  care_urgency?: 'routine' | 'urgent' | 'emergency';
 }
 
 const ChatInterface = () => {
@@ -38,7 +43,7 @@ const ChatInterface = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState("English");
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!currentMessage.trim()) return;
 
     const userMessage: Message = {
@@ -49,22 +54,61 @@ const ChatInterface = () => {
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const messageToSend = currentMessage;
     setCurrentMessage("");
     setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      // Call the medical chat AI function
+      const { data: aiResponse, error } = await supabase.functions.invoke('medical-chat', {
+        body: { 
+          message: messageToSend,
+          conversationHistory: messages.slice(-10) // Send last 10 messages for context
+        }
+      });
+
+      if (error) {
+        console.error("Chat AI error:", error);
+        throw error;
+      }
+
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
         type: 'bot',
-        content: "Based on your symptoms, I'm analyzing the information. Please provide more details about when these symptoms started and their severity level.",
+        content: aiResponse.response,
         timestamp: new Date(),
-        confidence: 85,
-        reasoning: "Symptom pattern analysis indicates need for additional context"
+        confidence: aiResponse.confidence,
+        reasoning: aiResponse.reasoning,
+        recommend_medical_care: aiResponse.recommend_medical_care,
+        care_urgency: aiResponse.care_urgency
       };
+
       setMessages(prev => [...prev, botResponse]);
+
+      // Show urgent care notification if needed
+      if (aiResponse.recommend_medical_care && aiResponse.care_urgency === 'emergency') {
+        toast.error("Emergency: Seek immediate medical attention!", { duration: 10000 });
+      } else if (aiResponse.recommend_medical_care && aiResponse.care_urgency === 'urgent') {
+        toast.warning("Consider seeking medical care soon.", { duration: 5000 });
+      }
+
+    } catch (error) {
+      console.error("Error sending message:", error);
+      const errorResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        type: 'bot',
+        content: "I'm sorry, I'm experiencing technical difficulties. Please try again later or consult with a healthcare professional if you have urgent medical concerns.",
+        timestamp: new Date(),
+        confidence: 0,
+        reasoning: "System error occurred",
+        recommend_medical_care: true,
+        care_urgency: 'routine'
+      };
+      setMessages(prev => [...prev, errorResponse]);
+      toast.error("Failed to get AI response. Please try again.");
+    } finally {
       setIsTyping(false);
-    }, 2000);
+    }
   };
 
   const languages = ["English", "Hindi", "Spanish", "French", "German"];
@@ -149,6 +193,23 @@ const ChatInterface = () => {
                               </div>
                               {message.reasoning && (
                                 <p className="text-xs mt-1 opacity-70">{message.reasoning}</p>
+                              )}
+                              {message.recommend_medical_care && (
+                                <div className={`flex items-center gap-1 mt-2 text-xs ${
+                                  message.care_urgency === 'emergency' 
+                                    ? 'text-red-400' 
+                                    : message.care_urgency === 'urgent'
+                                    ? 'text-yellow-400'
+                                    : 'text-blue-400'
+                                }`}>
+                                  <AlertCircle className="w-3 h-3" />
+                                  {message.care_urgency === 'emergency' 
+                                    ? 'Seek immediate medical care'
+                                    : message.care_urgency === 'urgent'
+                                    ? 'Consider medical consultation'
+                                    : 'Routine medical care recommended'
+                                  }
+                                </div>
                               )}
                             </div>
                           )}
